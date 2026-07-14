@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<title>🍻 술자리 복불복</title>
+<meta name="theme-color" content="#16213e">
+<link rel="manifest" href="manifest.json">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="복불복">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Segoe UI', 'Malgun Gothic', sans-serif;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    color: #fff;
+    overflow-x: hidden;
+  }
+
+  .container {
+    width: 100%;
+    max-width: 640px;
+    text-align: center;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* 떠다니는 술자리 이모지 배경 */
+  .float-emoji {
+    position: fixed;
+    bottom: -60px;
+    font-size: 2rem;
+    opacity: 0.16;
+    pointer-events: none;
+    z-index: 0;
+    animation: floatUp linear infinite;
+  }
+
+  @keyframes floatUp {
+    from { transform: translateY(0) rotate(-15deg); }
+    to { transform: translateY(-115vh) rotate(15deg); }
+  }
+
+  h1 {
+    font-size: 2.2rem;
+    margin-bottom: 8px;
+    text-shadow: 0 0 20px rgba(255, 100, 50, 0.6);
+  }
+
+  .subtitle {
+    color: #aab;
+    margin-bottom: 24px;
+    font-size: 0.95rem;
+  }
+
+  /* ===== 설정 화면 ===== */
+  .settings {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 20px;
+    padding: 28px;
+    backdrop-filter: blur(10px);
+  }
+
+  .setting-group { margin-bottom: 28px; }
+
+  .setting-label {
+    font-size: 1.05rem;
+    font-weight: 600;
+    margin-bottom: 14px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .setting-value {
+    background: #ff6b35;
+    color: #fff;
+    border-radius: 10px;
+    padding: 2px 12px;
+    font-size: 1.1rem;
+    min-width: 44px;
+    display: inline-block;
+  }
+
+  .stepper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+  }
+
+  .stepper button {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    border: none;
+    font-size: 1.6rem;
+    font-weight: bold;
+    cursor: pointer;
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+    transition: all 0.15s;
+  }
+
+  .stepper button:hover { background: rgba(255, 255, 255, 0.25); transform: scale(1.08); }
+  .stepper button:active { transform: scale(0.95); }
+
+  .stepper input[type=range] {
+    width: 200px;
+    accent-color: #ff6b35;
+    cursor: pointer;
+  }
+
+  .start-btn {
+    width: 100%;
+    padding: 18px;
+    font-size: 1.3rem;
+    font-weight: 700;
+    border: none;
+    border-radius: 14px;
+    cursor: pointer;
+    background: linear-gradient(135deg, #ff6b35, #ff2e63);
+    color: #fff;
+    box-shadow: 0 6px 20px rgba(255, 46, 99, 0.4);
+    transition: all 0.2s;
+  }
+
+  .start-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(255, 46, 99, 0.55); }
+  .start-btn:active { transform: translateY(0); }
+
+  /* ===== 게임 화면 ===== */
+  .game-info {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    margin-bottom: 20px;
+    font-size: 1rem;
+  }
+
+  .info-chip {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 999px;
+    padding: 8px 18px;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+    gap: 14px;
+    margin-bottom: 24px;
+  }
+
+  .tile {
+    aspect-ratio: 1;
+    border-radius: 18px;
+    border: none;
+    font-size: 2rem;
+    font-weight: 800;
+    cursor: pointer;
+    background: linear-gradient(145deg, #2d4a7a, #1e3a5f);
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    transition: transform 0.15s, box-shadow 0.15s;
+    position: relative;
+  }
+
+  .tile:hover:not(.revealed) {
+    transform: translateY(-4px) scale(1.03);
+    box-shadow: 0 10px 24px rgba(80, 160, 255, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  }
+
+  .tile.revealed { cursor: default; }
+
+  .tile.safe {
+    animation: pop 0.4s ease;
+    filter: saturate(0.45) brightness(0.75);
+  }
+
+  .tile.bomb {
+    animation: explode 0.6s ease;
+  }
+
+  @keyframes pop {
+    0% { transform: scale(0.8); }
+    50% { transform: scale(1.15); }
+    100% { transform: scale(1); }
+  }
+
+  @keyframes explode {
+    0% { transform: scale(1); }
+    20% { transform: scale(1.3) rotate(-6deg); }
+    40% { transform: scale(1.2) rotate(6deg); }
+    60% { transform: scale(1.25) rotate(-4deg); }
+    80% { transform: scale(1.1) rotate(2deg); }
+    100% { transform: scale(1); }
+  }
+
+  body.shake { animation: shake 0.5s; }
+
+  @keyframes shake {
+    0%, 100% { transform: translate(0, 0); }
+    20% { transform: translate(-10px, 5px); }
+    40% { transform: translate(10px, -5px); }
+    60% { transform: translate(-8px, -4px); }
+    80% { transform: translate(8px, 4px); }
+  }
+
+  .controls {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+  }
+
+  .ctrl-btn {
+    padding: 14px 28px;
+    font-size: 1.05rem;
+    font-weight: 600;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .ctrl-btn.restart { background: linear-gradient(135deg, #ff6b35, #ff2e63); color: #fff; }
+  .ctrl-btn.settings-back { background: rgba(255, 255, 255, 0.12); color: #fff; }
+  .ctrl-btn:hover { transform: translateY(-2px); }
+
+  /* ===== 결과 오버레이 ===== */
+  .overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.75);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+  }
+
+  .overlay.show { opacity: 1; pointer-events: auto; }
+
+  .overlay-content {
+    text-align: center;
+    animation: overlayPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  @keyframes overlayPop {
+    from { transform: scale(0.5); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+
+  .overlay-emoji { font-size: 6rem; margin-bottom: 16px; }
+  .overlay-title { font-size: 2.4rem; font-weight: 800; margin-bottom: 10px; }
+  .overlay-sub { font-size: 1.2rem; color: #ccd; margin-bottom: 28px; }
+
+  .hidden { display: none; }
+
+  /* 파티클 */
+  .particle {
+    position: fixed;
+    pointer-events: none;
+    font-size: 1.5rem;
+    z-index: 99;
+    animation: fly 1s ease-out forwards;
+  }
+
+  @keyframes fly {
+    to {
+      transform: translate(var(--dx), var(--dy)) rotate(720deg);
+      opacity: 0;
+    }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>🍻 술자리 복불복</h1>
+  <p class="subtitle">잘못 고르면... 원샷! 🍺💥</p>
+
+  <!-- 설정 화면 -->
+  <div class="settings" id="settingsScreen">
+    <div class="setting-group">
+      <div class="setting-label">👥 인원 수 <span class="setting-value" id="playerValue">6</span>명</div>
+      <div class="stepper">
+        <button onclick="changePlayers(-1)">−</button>
+        <input type="range" id="playerSlider" min="2" max="12" value="6" oninput="setPlayers(this.value)">
+        <button onclick="changePlayers(1)">+</button>
+      </div>
+    </div>
+
+    <div class="setting-group">
+      <div class="setting-label">💣 폭탄 개수 <span class="setting-value" id="bombValue">1</span>개</div>
+      <div class="stepper">
+        <button onclick="changeBombs(-1)">−</button>
+        <input type="range" id="bombSlider" min="1" max="5" value="1" oninput="setBombs(this.value)">
+        <button onclick="changeBombs(1)">+</button>
+      </div>
+    </div>
+
+    <button class="start-btn" onclick="startGame()">🍻 짠! 게임 시작!</button>
+  </div>
+
+  <!-- 게임 화면 -->
+  <div id="gameScreen" class="hidden">
+    <div class="game-info">
+      <div class="info-chip">💣 폭탄 <b id="bombCount"></b>개</div>
+      <div class="info-chip">✅ 안전 <b id="safeLeft"></b>개 남음</div>
+    </div>
+    <div class="grid" id="grid"></div>
+    <div class="controls">
+      <button class="ctrl-btn restart" onclick="startGame()">🔄 다시 하기</button>
+      <button class="ctrl-btn settings-back" onclick="showSettings()">⚙️ 설정으로</button>
+    </div>
+  </div>
+</div>
+
+<!-- 결과 오버레이 -->
+<div class="overlay" id="overlay">
+  <div class="overlay-content">
+    <div class="overlay-emoji" id="overlayEmoji">💥</div>
+    <div class="overlay-title" id="overlayTitle"></div>
+    <div class="overlay-sub" id="overlaySub"></div>
+    <button class="ctrl-btn restart" onclick="startGame()">🔄 다시 하기</button>
+    <button class="ctrl-btn settings-back" onclick="showSettings()">⚙️ 설정으로</button>
+  </div>
+</div>
+
+<script>
+  let players = 6;
+  let bombs = 1;
+  let bombSet = new Set();
+  let revealed = new Set();
+  let gameOver = false;
+  let autoRestartTimer = null; // 전원 생존 시 자동 재시작 타이머
+
+  const TILE_COLOR = 'linear-gradient(145deg, #66bb6a, #2e7d32)'; // 타일 공통 녹색 (소주병 느낌)
+
+  const PENALTIES = [
+    '원샷! 🍺',
+    '러브샷 하고 마시기 💕',
+    '소맥 말아서 원샷 🍺🍶',
+    '건배사 외치고 원샷 🎤',
+    '3행시 짓기! 실패하면 원샷 ✍️',
+    '옆 사람이 따라주는 만큼 마시기 😈',
+    '애교 한 번 하고 반샷 🥰',
+    '왼쪽 사람과 러브샷 💘',
+    '오른쪽 사람과 러브샷 💘',
+    '물 대신 술 원샷... 은 농담, 그냥 원샷 🍺',
+    '노래 한 소절 부르고 원샷 🎶',
+    '다 같이 짠! 당첨자는 원샷 🍻'
+  ];
+
+  const $ = id => document.getElementById(id);
+
+  function syncBombMax() {
+    const max = players - 1;
+    $('bombSlider').max = max;
+    if (bombs > max) { bombs = max; }
+    $('bombSlider').value = bombs;
+    $('bombValue').textContent = bombs;
+  }
+
+  function setPlayers(v) {
+    players = Number(v);
+    $('playerValue').textContent = players;
+    $('playerSlider').value = players;
+    syncBombMax();
+  }
+
+  function changePlayers(d) {
+    setPlayers(Math.min(12, Math.max(2, players + d)));
+  }
+
+  function setBombs(v) {
+    bombs = Number(v);
+    $('bombValue').textContent = bombs;
+    $('bombSlider').value = bombs;
+  }
+
+  function changeBombs(d) {
+    setBombs(Math.min(players - 1, Math.max(1, bombs + d)));
+  }
+
+  function startGame() {
+    clearTimeout(autoRestartTimer);
+    gameOver = false;
+    revealed = new Set();
+    bombSet = new Set();
+
+    // 폭탄 위치 랜덤 선정
+    const nums = Array.from({ length: players }, (_, i) => i + 1);
+    for (let i = nums.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [nums[i], nums[j]] = [nums[j], nums[i]];
+    }
+    nums.slice(0, bombs).forEach(n => bombSet.add(n));
+
+    // 화면 구성
+    $('settingsScreen').classList.add('hidden');
+    $('gameScreen').classList.remove('hidden');
+    $('overlay').classList.remove('show');
+    $('bombCount').textContent = bombs;
+    updateSafeLeft();
+
+    const grid = $('grid');
+    grid.innerHTML = '';
+    for (let i = 1; i <= players; i++) {
+      const btn = document.createElement('button');
+      btn.className = 'tile';
+      btn.style.background = TILE_COLOR;
+      btn.onclick = () => pick(i, btn);
+      grid.appendChild(btn);
+    }
+    playStart();
+  }
+
+  function updateSafeLeft() {
+    const safeTotal = players - bombs;
+    const safeFound = [...revealed].filter(n => !bombSet.has(n)).length;
+    $('safeLeft').textContent = safeTotal - safeFound;
+  }
+
+  function pick(n, btn) {
+    if (gameOver || revealed.has(n)) return;
+    revealed.add(n);
+    btn.classList.add('revealed');
+
+    if (bombSet.has(n)) {
+      // 💥 폭탄!
+      btn.classList.add('bomb');
+      btn.style.background = 'linear-gradient(145deg, #d32f2f, #7f0000)';
+      btn.textContent = '💣';
+      playBoom();
+      document.body.classList.add('shake');
+      setTimeout(() => document.body.classList.remove('shake'), 500);
+      spawnParticles(btn, ['💥', '🍺', '🔥', '🍻']);
+      gameOver = true;
+      setTimeout(() => {
+        revealAll();
+        const penalty = PENALTIES[Math.floor(Math.random() * PENALTIES.length)];
+        showResult('🍺', '당첨!!', '벌칙 👉 ' + penalty);
+      }, 800);
+    } else {
+      // ✅ 안전
+      btn.classList.add('safe');
+      btn.textContent = '😮‍💨';
+      playSafe();
+      updateSafeLeft();
+      // 안전 칸을 모두 열면 남은 건 전부 폭탄 → 생존자 승리
+      const safeTotal = players - bombs;
+      const safeFound = [...revealed].filter(x => !bombSet.has(x)).length;
+      if (safeFound === safeTotal) {
+        gameOver = true;
+        setTimeout(() => {
+          revealAll();
+          playWin();
+          autoRestartTimer = setTimeout(startGame, 1200);
+        }, 400);
+      }
+    }
+  }
+
+  function revealAll() {
+    document.querySelectorAll('.tile').forEach((btn, idx) => {
+      const n = idx + 1;
+      if (revealed.has(n)) return;
+      btn.classList.add('revealed');
+      if (bombSet.has(n)) {
+        btn.classList.add('bomb');
+        btn.style.background = 'linear-gradient(145deg, #d32f2f, #7f0000)';
+        btn.textContent = '💣';
+      }
+    });
+  }
+
+  function showResult(emoji, title, sub) {
+    $('overlayEmoji').textContent = emoji;
+    $('overlayTitle').textContent = title;
+    $('overlaySub').textContent = sub;
+    $('overlay').classList.add('show');
+  }
+
+  function showSettings() {
+    clearTimeout(autoRestartTimer);
+    $('gameScreen').classList.add('hidden');
+    $('overlay').classList.remove('show');
+    $('settingsScreen').classList.remove('hidden');
+  }
+
+  function spawnParticles(el, emojis) {
+    const rect = el.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    for (let i = 0; i < 14; i++) {
+      const p = document.createElement('div');
+      p.className = 'particle';
+      p.textContent = emojis[i % emojis.length];
+      p.style.left = cx + 'px';
+      p.style.top = cy + 'px';
+      const angle = Math.random() * Math.PI * 2;
+      const dist = 80 + Math.random() * 160;
+      p.style.setProperty('--dx', Math.cos(angle) * dist + 'px');
+      p.style.setProperty('--dy', Math.sin(angle) * dist + 'px');
+      document.body.appendChild(p);
+      setTimeout(() => p.remove(), 1000);
+    }
+  }
+
+  // ===== 효과음 (Web Audio) =====
+  let audioCtx;
+  function ctx() {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    return audioCtx;
+  }
+
+  function playSafe() {
+    try {
+      const c = ctx();
+      const o = c.createOscillator();
+      const g = c.createGain();
+      o.type = 'sine';
+      o.frequency.setValueAtTime(600, c.currentTime);
+      o.frequency.exponentialRampToValueAtTime(900, c.currentTime + 0.12);
+      g.gain.setValueAtTime(0.15, c.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.25);
+      o.connect(g).connect(c.destination);
+      o.start();
+      o.stop(c.currentTime + 0.25);
+    } catch (e) {}
+  }
+
+  function playBoom() {
+    try {
+      const c = ctx();
+      // 저음 폭발
+      const o = c.createOscillator();
+      const g = c.createGain();
+      o.type = 'sawtooth';
+      o.frequency.setValueAtTime(120, c.currentTime);
+      o.frequency.exponentialRampToValueAtTime(30, c.currentTime + 0.6);
+      g.gain.setValueAtTime(0.4, c.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.6);
+      o.connect(g).connect(c.destination);
+      o.start();
+      o.stop(c.currentTime + 0.6);
+      // 노이즈
+      const len = c.sampleRate * 0.4;
+      const buf = c.createBuffer(1, len, c.sampleRate);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < len; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / len);
+      const src = c.createBufferSource();
+      const ng = c.createGain();
+      src.buffer = buf;
+      ng.gain.setValueAtTime(0.3, c.currentTime);
+      src.connect(ng).connect(c.destination);
+      src.start();
+    } catch (e) {}
+  }
+
+  function playNote(freq, start, dur, type, vol) {
+    const c = ctx();
+    const o = c.createOscillator();
+    const g = c.createGain();
+    o.type = type || 'triangle';
+    o.frequency.setValueAtTime(freq, c.currentTime + start);
+    g.gain.setValueAtTime(0.0001, c.currentTime + start);
+    g.gain.exponentialRampToValueAtTime(vol || 0.18, c.currentTime + start + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.001, c.currentTime + start + dur);
+    o.connect(g).connect(c.destination);
+    o.start(c.currentTime + start);
+    o.stop(c.currentTime + start + dur);
+  }
+
+  function playStart() {
+    try {
+      // 두근두근 시작음
+      playNote(523, 0, 0.15);
+      playNote(659, 0.12, 0.15);
+      playNote(784, 0.24, 0.25);
+    } catch (e) {}
+  }
+
+  function playWin() {
+    try {
+      // 🎉 승리 팡파레
+      playNote(523, 0, 0.18, 'square', 0.12);
+      playNote(659, 0.15, 0.18, 'square', 0.12);
+      playNote(784, 0.3, 0.18, 'square', 0.12);
+      playNote(1047, 0.45, 0.5, 'square', 0.15);
+      playNote(784, 0.45, 0.5, 'triangle', 0.1);
+    } catch (e) {}
+  }
+
+  // 떠다니는 배경 이모지 생성
+  (function () {
+    const emojis = ['🍺', '🍻', '🍶', '🥃', '🍷', '✨', '🎉'];
+    for (let i = 0; i < 12; i++) {
+      const s = document.createElement('div');
+      s.className = 'float-emoji';
+      s.textContent = emojis[i % emojis.length];
+      s.style.left = Math.random() * 96 + 'vw';
+      s.style.fontSize = (1.4 + Math.random() * 1.8) + 'rem';
+      const dur = 12 + Math.random() * 14;
+      s.style.animationDuration = dur + 's';
+      s.style.animationDelay = -Math.random() * dur + 's';
+      document.body.appendChild(s);
+    }
+  })();
+
+  syncBombMax();
+
+  // PWA: 오프라인 지원 (호스팅된 경우에만 동작)
+  if ('serviceWorker' in navigator && location.protocol === 'https:') {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
+</script>
+</body>
+</html>
