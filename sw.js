@@ -1,4 +1,4 @@
-﻿const CACHE = 'bokbulbok-v2';
+const CACHE = 'bokbulbok-v2';
 const ASSETS = ['.', 'index.html', 'manifest.json', 'icon-192.png', 'icon-512.png'];
 
 self.addEventListener('install', e => {
@@ -13,7 +13,7 @@ self.addEventListener('activate', e => {
   );
 });
 
-// ?ㅽ듃?뚰겕 ?곗꽑, ?ㅽ뙣 ??罹먯떆 (?ㅽ봽?쇱씤?먯꽌???ㅽ뻾)
+// 네트워크 우선, 실패 시 캐시 (오프라인에서도 실행)
 self.addEventListener('fetch', e => {
   e.respondWith(
     fetch(e.request)
@@ -25,4 +25,3 @@ self.addEventListener('fetch', e => {
       .catch(() => caches.match(e.request, { ignoreSearch: true }))
   );
 });
-
